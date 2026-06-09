@@ -20,38 +20,36 @@ This is ideal for understanding how parameter-efficient fine-tuning works under 
 
 **Low-Rank Adaptation (LoRA)** fine-tunes large pretrained models by freezing the original weights and training only small low-rank matrices instead of updating all parameters.
 
-### How LoRA Works
-
 <table>
   <tr>
-    <td valign="top" width="55%">
+    <td width="58%" valign="top">
 
-<p><strong>For a weight matrix \(W_0 \in \mathbb{R}^{d \times k}\), LoRA models the task-specific update as:</strong></p>
+**For a weight matrix `W0` in `R^(d x k)`, LoRA models the task-specific update as:**
 
-<p>\[
-W = W_0 + \Delta W, \qquad \Delta W = \frac{\alpha}{r}BA
-\]</p>
+`W = W0 + ΔW,    ΔW = (α / r) BA`
 
-<p><strong>Where:</strong></p>
+**Where:**
 
-<ul>
-  <li>\(W_0\) is frozen (not updated)</li>
-  <li>\(A \in \mathbb{R}^{r \times k}\) — low-rank matrix (trainable)</li>
-  <li>\(B \in \mathbb{R}^{d \times r}\) — low-rank matrix (trainable)</li>
-  <li>\(r \ll \min(d, k)\) — the low rank (typically 8–64)</li>
-</ul>
+- `W0` is frozen (not updated)
+- `A` is a low-rank trainable matrix in `R^(r x k)`
+- `B` is a low-rank trainable matrix in `R^(d x r)`
+- `r << min(d, k)` is the low rank (typically 8–64)
 
-<p>This decomposition ensures that only a small number of parameters are trainable, making fine-tuning efficient in both memory and computation.</p>
+This decomposition keeps the number of trainable parameters small, making fine-tuning efficient in memory and computation.
 
-<p><strong>Training:</strong> Only \(A\) and \(B\) are updated.</p>
-<p><strong>Inference:</strong> The low-rank matrices can be merged into the base weights for no additional latency.</p>
+**Training:** Only `A` and `B` are updated.  
+**Inference:** The low-rank matrices can be merged into the base weights for no additional latency.
 
     </td>
-    <td valign="top" width="45%" align="center">
-      <img src="./images/lora_layer.png" alt="LoRA layer diagram" width="100%">
+    <td width="42%" valign="top" align="center">
+
+<img src="./images/lora_layer.png" alt="LoRA layer diagram" width="100%">
+
     </td>
   </tr>
 </table>
+
+---
 
 ## Quantization Fundamentals
 
