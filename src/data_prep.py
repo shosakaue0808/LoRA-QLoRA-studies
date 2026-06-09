@@ -34,15 +34,22 @@ class GSMDataset(torch.utils.data.Dataset):
     def __getitem__(self, idx):
         qn_tokens = self.qns["input_ids"][idx]
         ans_tokens = self.ans["input_ids"][idx]
-        pad_tokens = [0] * (self.max_len - len(qn_tokens) - len(ans_tokens))
+        pad_len = self.max_len - len(qn_tokens) - len(ans_tokens)
+        pad_tokens = [self.tokenizer.pad_token_id] * pad_len
         tokens = qn_tokens + ans_tokens + pad_tokens
-        mask = [0] * len(qn_tokens) + [1] * len(ans_tokens) + [0] * len(pad_tokens)
+        mask = [1] * (len(qn_tokens) + len(ans_tokens)) + [0] * pad_len
 
-        tokens = torch.tensor(tokens)
-        mask = torch.tensor(mask)
+        labels = tokens.copy()
+        labels[:len(qn_tokens)] = [-100] * len(qn_tokens)
+        labels[len(qn_tokens) + len(ans_tokens):] = [-100] * pad_len
+
+        tokens = torch.tensor(tokens, dtype=torch.long)
+        mask = torch.tensor(mask, dtype=torch.long)
+        labels = torch.tensor(labels, dtype=torch.long)
         return {
             "input_ids": tokens,
             "attention_mask": mask,
+            "labels": labels,
         }
     
     def __str__(self):
