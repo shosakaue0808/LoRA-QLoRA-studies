@@ -137,7 +137,7 @@ Therefore, when you do quantization, you need to think of performance-memory tra
 
 **FP32** provides high numerical precision but uses significant memory and bandwidth. For large language models, this becomes a major bottleneck.
 
-**Mixed-precision training** stores or computes in lower precision (16-bit) while maintaining numerical stability through careful scaling. This dramatically reduces memory footprint and improves training speed.
+**Mixed-precision training** stores or computes in lower precision (16-bit formats) for most storage and computation to reduce memory use and move data more efficiently. It keeps the training stable by preserving certain values in higher precision and applying techniques such as loss scaling to avoid numerical errors. This allows training to run faster while using less hardware memory.
 
 ---
 
