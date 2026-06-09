@@ -189,7 +189,7 @@ A floating-point number has three components:
 **When BF16 is useful:**
 - Range is critical
 - Memory/compute reduction is needed
-- Many large model frameworks default to BF16
+- Many large model frameworks default to BF16 including Llama-3.2-1B model, the one I fine-tuned.
 
 ---
 
