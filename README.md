@@ -2,10 +2,10 @@
 
 ##  Introduction
 
-This project studies **parameter-efficient fine-tuning** under free-Colab-scale compute constraints. It includes:
+This project studies **parameter-efficient fine-tuning** under Colab-limited scale compute constraints. It includes:
 
 -  review of LoRA and QLoRA paper
--  **Manual LoRA implementation** in PyTorch from scratch
+-  **Manual LoRA layer implementation** in PyTorch
 -  **Comparative analysis** with PEFT-based LoRA/QLoRA implementations
 -  **Empirical evaluation** of how rank, target modules, and quantization affect:
   - Memory usage
@@ -25,6 +25,8 @@ This is ideal for understanding how parameter-efficient fine-tuning works under 
 For a weight matrix $W_0 \in \mathbb{R}^{d \times k}$, LoRA models the task-specific update as:
 
 $$W = W_0 + \Delta W, \qquad \Delta W = \frac{\alpha}{r}BA$$
+
+![LoRA Layer](./images/LoRA_Layer.png)
 
 Where:
 
