@@ -36,9 +36,6 @@ Where:
 
 ![LoRA Layer](./images/LoRA_layer.png)
 
-**Training**: Only $A$ and $B$ are updated.  
-**Inference**: The low-rank matrices can be merged into the base weights for no additional latency.
-
 ---
 
 ## Quantization Fundamentals
