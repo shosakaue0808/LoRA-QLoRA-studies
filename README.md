@@ -34,7 +34,7 @@ Where:
 - $r \ll \min(d,k)$ – the low rank (typically 8–64)
 - $\alpha$ – scaling factor (hyperparameter)
 
-![LoRA Layer](./images/LoRA_layer.png)
+![LoRA Layer](./images/lora_layer.png)
 
 ---
 
