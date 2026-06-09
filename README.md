@@ -22,19 +22,31 @@ This is ideal for understanding how parameter-efficient fine-tuning works under 
 
 ### How LoRA Works
 
-For a weight matrix $W_0 \in \mathbb{R}^{d \times k}$, LoRA models the task-specific update as:
+<table>
+  <tr>
+    <td valign="top" width="55%">
 
-$$W = W_0 + \Delta W, \qquad \Delta W = \frac{\alpha}{r}BA$$
+**For a weight matrix \(W_0 \in \mathbb{R}^{d \times k}\), LoRA models the task-specific update as:**
 
-![LoRA Layer](./images/LoRA_layer.png)
+\[
+W = W_0 + \Delta W, \qquad \Delta W = \frac{\alpha}{r}BA
+\]
 
-Where:
+**Where:**
 
-- $W_0$ is **frozen** (not updated)
-- $A \in \mathbb{R}^{r \times k}$ – low-rank matrix (trainable)
-- $B \in \mathbb{R}^{d \times r}$ – low-rank matrix (trainable)
-- $r \ll \min(d,k)$ – the low rank (typically 8–64)
-- $\alpha$ – scaling factor (hyperparameter)
+- \(W_0\) is frozen (not updated)
+- \(A \in \mathbb{R}^{r \times k}\) — low-rank matrix (trainable)
+- \(B \in \mathbb{R}^{d \times r}\) — low-rank matrix (trainable)
+- \(r \ll \min(d, k)\) — the low rank (typically 8–64)
+
+This decomposition ensures that only a small number of parameters are trainable, making fine-tuning efficient in both memory and computation.
+
+    </td>
+    <td valign="top" width="45%">
+      <img src="./images/lora_layer.png" alt="LoRA layer diagram" width="100%">
+    </td>
+  </tr>
+</table>
 
 **Training**: Only $A$ and $B$ are updated.  
 **Inference**: The low-rank matrices can be merged into the base weights for no additional latency.
