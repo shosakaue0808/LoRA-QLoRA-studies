@@ -214,7 +214,7 @@ A single global scale can be inefficient—one outlier forces a large scale, was
 
 For tensor $X$ split into blocks $X^{(1)}, X^{(2)}, \dots$:
 
-$$q^{(b)} = \mathrm{round}\!\left(\frac{X^{(b)}}{s_b}\right), \qquad \hat{X}^{(b)} = s_b \cdot q^{(b)}$$
+$$q^{(b)} = \mathrm{round}\left(\frac{X^{(b)}}{s_b}\right), \qquad \hat{X}^{(b)} = s_b \cdot q^{(b)}$$
 
 Each block adapts to its own value range, providing better fidelity than global quantization.
 
