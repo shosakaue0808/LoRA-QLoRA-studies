@@ -81,7 +81,9 @@ $$\mathbf{x} = [0.5, 1.234, -2.1, 3.5, 0.1, -1.8, 2.7, -0.3]$$
 For **8-bit signed integers**, the range is $[-128, 127]$ (so $q_{\max} = 127$).
 
 **Step 1:** Find the scale
+
 $$\max(|x|) = \max(0.5, 1.234, 2.1, 3.5, 0.1, 1.8, 2.7, 0.3) = 3.5$$
+
 $$s = \frac{3.5}{127} \approx 0.0276$$
 
 **Step 2:** Quantize each value
