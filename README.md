@@ -2,10 +2,17 @@
 
 ##  Introduction
 
+<<<<<<< HEAD
 This project studies **parameter-efficient fine-tuning** under Colab-limited-scale compute constraints. It includes:
 
 -  review of LoRA and QLoRA paper
 -  **Manual LoRA implementation** in PyTorch 
+=======
+This project studies **parameter-efficient fine-tuning** under Colab-limited scale compute constraints. It includes:
+
+-  review of LoRA and QLoRA paper
+-  **Manual LoRA layer implementation** in PyTorch
+>>>>>>> 8188944c8c52fcf6c1c34b29b0e2e9b1faa6e1f1
 -  **Comparative analysis** with PEFT-based LoRA/QLoRA implementations
 -  **Empirical evaluation** of how rank, target modules, and quantization affect:
   - Memory usage
@@ -26,7 +33,11 @@ For a weight matrix $W_0 \in \mathbb{R}^{d \times k}$, LoRA models the task-spec
 
 $$W = W_0 + \Delta W, \qquad \Delta W = \frac{\alpha}{r}BA$$
 
+<<<<<<< HEAD
 ![LoRA Layer](./images/LoRA_layer.png)
+=======
+![LoRA Layer](./images/LoRA_Layer.png)
+>>>>>>> 8188944c8c52fcf6c1c34b29b0e2e9b1faa6e1f1
 
 Where:
 
@@ -83,7 +94,9 @@ $$\mathbf{x} = [0.5, 1.234, -2.1, 3.5, 0.1, -1.8, 2.7, -0.3]$$
 For **8-bit signed integers**, the range is $[-128, 127]$ (so $q_{\max} = 127$).
 
 **Step 1:** Find the scale
+
 $$\max(|x|) = \max(0.5, 1.234, 2.1, 3.5, 0.1, 1.8, 2.7, 0.3) = 3.5$$
+
 $$s = \frac{3.5}{127} \approx 0.0276$$
 
 **Step 2:** Quantize each value
