@@ -26,32 +26,32 @@ This is ideal for understanding how parameter-efficient fine-tuning works under 
   <tr>
     <td valign="top" width="55%">
 
-**For a weight matrix \(W_0 \in \mathbb{R}^{d \times k}\), LoRA models the task-specific update as:**
+<p><strong>For a weight matrix \(W_0 \in \mathbb{R}^{d \times k}\), LoRA models the task-specific update as:</strong></p>
 
-\[
+<p>\[
 W = W_0 + \Delta W, \qquad \Delta W = \frac{\alpha}{r}BA
-\]
+\]</p>
 
-**Where:**
+<p><strong>Where:</strong></p>
 
-- \(W_0\) is frozen (not updated)
-- \(A \in \mathbb{R}^{r \times k}\) — low-rank matrix (trainable)
-- \(B \in \mathbb{R}^{d \times r}\) — low-rank matrix (trainable)
-- \(r \ll \min(d, k)\) — the low rank (typically 8–64)
+<ul>
+  <li>\(W_0\) is frozen (not updated)</li>
+  <li>\(A \in \mathbb{R}^{r \times k}\) — low-rank matrix (trainable)</li>
+  <li>\(B \in \mathbb{R}^{d \times r}\) — low-rank matrix (trainable)</li>
+  <li>\(r \ll \min(d, k)\) — the low rank (typically 8–64)</li>
+</ul>
 
-This decomposition ensures that only a small number of parameters are trainable, making fine-tuning efficient in both memory and computation.
+<p>This decomposition ensures that only a small number of parameters are trainable, making fine-tuning efficient in both memory and computation.</p>
+
+<p><strong>Training:</strong> Only \(A\) and \(B\) are updated.</p>
+<p><strong>Inference:</strong> The low-rank matrices can be merged into the base weights for no additional latency.</p>
 
     </td>
-    <td valign="top" width="45%">
+    <td valign="top" width="45%" align="center">
       <img src="./images/lora_layer.png" alt="LoRA layer diagram" width="100%">
     </td>
   </tr>
 </table>
-
-**Training**: Only $A$ and $B$ are updated.  
-**Inference**: The low-rank matrices can be merged into the base weights for no additional latency.
-
----
 
 ## Quantization Fundamentals
 
