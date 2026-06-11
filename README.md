@@ -274,7 +274,7 @@ where $Q_X(\cdot)$ is the quantile function (inverse CDF) of the standard normal
 
 For **4-bit quantization** ($k=4$, so $2^k = 16$ code points), the quantiles are:
 
-$$q_i = \frac{1}{2}\left( \Phi^{-1}\left(\frac{i}{17}\right) + \Phi^{-1}\left(\frac{i+1}{17}\right) \right) \quad \text{for } i = 0, 1, \ldots, 15$$
+$$q_i = \frac{1}{2}\left( Q_X\left(\frac{i}{17}\right) + Q_X\left(\frac{i+1}{17}\right) \right) \quad \text{for } i = 0, 1, \ldots, 15$$
 
 This gives 16 code points placed at **equal-probability intervals** of the standard normal:
 
