@@ -300,9 +300,7 @@ This rescaling ensures weights fit in the normalized range $[-1, 1]$ to match th
 
 #### Step 4: Match Weight Standard Deviations to Quantile Data Type
 
-The above process is equivalent to rescaling the weight tensor's standard deviation to match the data type's standard deviation. More formally:
-
-> **For zero-mean normal distributions with arbitrary standard deviations $\sigma$, step 3 is equivalent to dividing by $\sigma$ to obtain a standardized distribution**, then applying the fixed quantiles.
+The above process is equivalent to rescaling the weight tensor's standard deviation to match the data type's standard deviation. 
 
 The absolute maximum rescaling achieves similar standardization without explicitly computing $\sigma$ for every block.
 
