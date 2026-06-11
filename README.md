@@ -118,12 +118,6 @@ $$\hat{x}_i = s \cdot q_i$$
 - Reconstruction error is small (< 0.01 per value)
 - The scale adapts to the data magnitude (0.0276 in this case)
 
-With value clamping:
-
-$$q = \mathrm{clip}\left(\mathrm{round}\left(\frac{x}{s}\right), q_{\min}, q_{\max}\right)$$
-
-This clips the quantized value within $[q_{\min}, q_{\max}]$ to handle outliers.
-
 **Quantization error**:
 
 $$e = x - \hat{x}$$
@@ -137,7 +131,7 @@ Therefore, when you do quantization, you need to think of performance-memory tra
 
 **FP32** provides high numerical precision but uses significant memory and bandwidth. For large language models, this becomes a major bottleneck.
 
-**Mixed-precision training** stores or computes in lower precision (16-bit formats) for most storage and computation to reduce memory use and move data more efficiently. It keeps the training stable by preserving certain values in higher precision and applying techniques such as loss scaling to avoid numerical errors. This allows training to run faster while using less hardware memory.
+**Mixed-precision training** stores or computes in lower precision (16-bit formats) for most storage and computation to reduce memory use and move data more efficiently. It keeps the training stable by carefully managing numerical precision where it matters most.
 
 ---
 
@@ -212,104 +206,159 @@ This combines:
 
 A single global scale can be inefficient—one outlier forces a large scale, wasting precision elsewhere. **Blockwise quantization** divides the tensor into blocks and computes a separate scale per block.
 
-For tensor $X$ split into blocks $X^{(1)}, X^{(2)}, \dots$:
+For tensor $X$ split into blocks $X^{(1)}, X^{(2)}, \dots$ (typically 64 weights each):
 
 $$q^{(b)} = \mathrm{round}\left(\frac{X^{(b)}}{s_b}\right), \qquad \hat{X}^{(b)} = s_b \cdot q^{(b)}$$
 
-Each block adapts to its own value range, providing better fidelity than global quantization.
-
----
-
-## How Quantization Scales Are Chosen
-
-The choice of quantization scale $s_b$ is critical for minimizing information loss. The QLoRA paper discusses several approaches:
-
-### 1. Absolute Maximum (AbsMax) Method
-
-The simplest approach uses the absolute maximum value in each block:
-
-$$s_b = \frac{\max(|X^{(b)}|)}{q_{\max}}$$
-
-Where $q_{\max}$ is the maximum representable quantized value (e.g., 7 for 4-bit signed, 15 for 4-bit unsigned).
-
-**Pros:**
-- Simple to compute
-- Symmetric scaling around zero
-- Preserves the full range
-
-**Cons:**
-- Sensitive to outliers
-- Wastes precision if one extreme value dominates
-
-### 2. Percentile Method
-
-To reduce outlier sensitivity, scales can be computed using percentiles:
-
-$$s_b = \frac{\mathrm{percentile}(|X^{(b)}|, p)}{q_{\max}}$$
-
-Common choices: 99.9th or 99.95th percentile.
-
-**Pros:**
-- Robust to outliers
-- Better precision utilization for the majority of values
-
-**Cons:**
-- Sacrifices precision at the tails
-- Slight information loss for extreme values
-
-### 3. Quantile-Based Selection (QLoRA Standard)
-
-QLoRA's approach uses **quantile-aligned scales** combined with the NormalFloat (NF4) codebook:
-
-- For **NF4 codebook**: scales are chosen such that the 16 code points align with quantiles of the standard normal distribution
-- The scale $s_b$ is determined from the data distribution to match expected value ranges
-
-This aligns the quantization grid with actual weight distributions rather than arbitrary uniform spacing.
-
-$$s_b = \frac{q_{99.95}}{q_{\text{max}}}$$
-
-Where $q_{99.95}$ is the 99.95th percentile of absolute values in the block.
-
-**Why this works:**
-- Transformer weights follow approximately normal distributions
-- Allocates more precision to high-probability regions
-- Leaves tail regions slightly quantized but acceptable
+Each block adapts to its own value range, providing better fidelity than global quantization. By using small block sizes (e.g., 64 weights), we avoid the impact of outliers that would otherwise dominate a global scale calculation.
 
 ---
 
 ## ⚠️ Why Plain 4-bit Is Hard
 
-4-bit quantization has only $2^4 = 16$ possible codes—an extremely limited alphabet. Uniformly spaced codes lead to large quantization errors, especially problematic for pretrained weights which have non-uniform distributions.
+4-bit quantization has only $2^4 = 16$ possible codes—an extremely limited alphabet. Uniformly spaced codes lead to large quantization errors, especially problematic for pretrained weights.
 
 **Key insight**: Pretrained transformer weights are approximately **normally distributed and zero-centered**, so a 4-bit codebook should match this distribution rather than use uniform spacing.
 
 ---
 
+## Quantile Quantization for NF4
+
+### Information-Theoretic Optimality: Why Quantiles?
+
+**Quantile-based quantization** is information-theoretically optimal for a given data distribution. The key principle is:
+
+> **Assign an equal number of values from the input tensor to each quantization bin.**
+
+This is the optimal data type that minimizes quantization error for a given number of bits. Instead of spacing code points uniformly (which wastes precision), quantile-based quantization places code points where they matter most in the actual data distribution.
+
+For example, if you have a normal distribution with most values near zero:
+- Uniform spacing wastes bits on rare tail values
+- Quantile spacing allocates more codes near zero (where data concentrates) and fewer in the tails
+
+### The Challenge: Computing Quantiles
+
+In theory, the optimal quantile-based scale could be computed by:
+
+1. **Estimating the Empirical Cumulative Distribution Function (ECDF)**: Sort all values in a block and find values at specific percentiles
+2. **Standardization by standard deviation**: Scale all weights to a standard distribution so one quantile set works for all blocks
+
+However, these are **computationally expensive**:
+- Sorting or scanning for percentiles adds overhead during inference
+- Computing standard deviation for each block requires extra computation
+
+### QLoRA's Solution: One Fixed Quantile Set for Normal Distributions
+
+QLoRA's key insight is to use **a single fixed set of quantiles** that work for all blocks, exploiting the structure of neural network weights.
+
+**Observation**: Pretrained neural network weights (especially in transformers) are approximately **zero-centered normal distributions**, $X \sim \mathcal{N}(0, \sigma)$, where $\sigma$ varies per block. By dividing each block's weights by its standard deviation $\sigma$, we standardize all blocks to $\mathcal{N}(0, 1)$.
+
+Therefore, we can:
+1. Compute quantiles **once** for the standard normal distribution $\mathcal{N}(0, 1)$
+2. Apply these same quantiles to **all blocks** (after normalization)
+3. Store only the block's standard deviation $\sigma$ (not full block-specific quantile tables)
+
+This avoids expensive per-block quantile calculations while achieving information-theoretic optimality.
+
+### QLoRA's Formal Approach
+
+QLoRA transforms weights into a **standardized range $[-1, 1]$** and computes quantiles accordingly. Here's the step-by-step procedure:
+
+#### Step 1: Estimate Quantiles of the Standard Normal Distribution
+
+For $k$-bit quantization, compute $2^k$ quantile values from $\mathcal{N}(0, 1)$ to obtain a $k$-bit quantile quantization data type for normal distributions:
+
+$$q_i = \frac{1}{2}\left( Q_X\left(\frac{i}{2^k + 1}\right) + Q_X\left(\frac{i+1}{2^k + 1}\right) \right)$$
+
+where $Q_X(\cdot)$ is the quantile function (inverse CDF) of the standard normal distribution $\mathcal{N}(0, 1)$.
+
+For **4-bit quantization** ($k=4$, so $2^k = 16$ code points), the quantiles are:
+
+$$q_i = \frac{1}{2}\left( \Phi^{-1}\left(\frac{i}{17}\right) + \Phi^{-1}\left(\frac{i+1}{17}\right) \right) \quad \text{for } i = 0, 1, \ldots, 15$$
+
+This gives 16 code points placed at **equal-probability intervals** of the standard normal:
+
+$$\{-1.80, -1.47, -1.23, -1.04, -0.83, -0.68, -0.55, -0.42, 0.42, 0.55, 0.68, 0.83, 1.04, 1.23, 1.47, 1.80\}$$
+
+(These values are symmetric and more densely packed near zero, following the normal distribution.)
+
+#### Step 2: Normalize Quantiles to the Data Range $[-1, 1]$
+
+Normalize these quantiles so they fit exactly in the range $[-1, 1]$:
+
+$$\tilde{q}_i = \frac{q_i}{\max(|q|)}$$
+
+This ensures the data type and input weights can be mapped to the same range.
+
+#### Step 3: Normalize Input Weights by Absolute Maximum
+
+For each weight block $X^{(b)}$, normalize to the range $[-1, 1]$ using **absolute maximum scaling**:
+
+$$\tilde{X}^{(b)} = \frac{X^{(b)}}{\max(|X^{(b)}|)}$$
+
+This rescaling ensures weights fit in the normalized range $[-1, 1]$ to match the quantile data type.
+
+#### Step 4: Match Weight Standard Deviations to Quantile Data Type
+
+The above process is equivalent to rescaling the weight tensor's standard deviation to match the data type's standard deviation. More formally:
+
+> **For zero-mean normal distributions with arbitrary standard deviations $\sigma$, step 3 is equivalent to dividing by $\sigma$ to obtain a standardized distribution**, then applying the fixed quantiles.
+
+The absolute maximum rescaling achieves similar standardization without explicitly computing $\sigma$ for every block.
+
+#### Step 5: Quantize Using Nearest Quantile
+
+For each normalized weight $\tilde{x} \in [-1, 1]$, find the nearest quantile and store its code index (0-15):
+
+$$c = \arg\min_i |\tilde{x} - \tilde{q}_i|$$
+
+Store only the 4-bit code $c$.
+
+#### Step 6: Dequantization (Forward/Backward Pass)
+
+During computation, dequantize by:
+
+1. Retrieve the 4-bit code $c$
+2. Look up the normalized quantile $\tilde{q}_c$ from the fixed table
+3. Rescale back to the block's magnitude: $\hat{x} = \max(|X^{(b)}|) \cdot \tilde{q}_c$
+
+### Why This Works: Information-Theoretic Optimality
+
+1. **Fixed quantile set**: The 16 quantiles are precomputed once for all blocks, avoiding per-block overhead
+2. **Matches weight distribution**: Since weights are approximately normal, quantiles of $\mathcal{N}(0, 1)$ align with the actual weight distribution
+3. **Allocates precision optimally**: Codes are denser near zero (where weights cluster) and sparser in the tails (where weights are rare)
+4. **Efficient normalization**: Using absolute maximum is faster than computing standard deviation on every block
+
+### Handling Zero Exactly
+
+A challenge with symmetric $k$-bit quantization is the lack of an exact representation of zero, which is important for padding and other zero-valued elements. QLoRA addresses this by including zero as one of the $2^k$ code points, ensuring zero values are represented exactly.
+
+---
+
 ## NF4: NormalFloat 4-bit
 
-**NF4 (NormalFloat 4-bit)** chooses 16 representable values aligned with a standard normal distribution $\mathcal{N}(0,1)$, rather than evenly spaced integers.
-
-Code points are placed at **quantiles of the normal distribution**, so each bin represents equal probability mass.
+**NF4 (NormalFloat 4-bit)** is the specific 4-bit quantization data type used in QLoRA. It places 16 code points at quantiles of the standard normal distribution $\mathcal{N}(0,1)$, rather than evenly spaced integers.
 
 ### Why NF4 Is Better
 
-- **Many weights cluster near zero** → allocate more precision there
-- **Fewer weights in tails** → allocate less precision there
+- **Many weights cluster near zero** → allocate more codes there
+- **Fewer weights in tails** → allocate fewer codes there
+- **Information-theoretically optimal** for normal distributions
 - **Better for transformer weights** than uniform Int4 or FP4
 
-This adaptive quantization is essential for effective 4-bit QLoRA.
+The NF4 data type is specifically designed for pretrained neural network weights and is essential for effective 4-bit QLoRA.
 
 ---
 
 ## Double Quantization
 
-Blockwise quantizers store scales for each block. For block size $B$ with 32-bit scales, the overhead is:
+Blockwise quantizers store the absolute maximum value (scale) for each block. For block size $B$ with 32-bit scales, the overhead is:
 
 $$\frac{32}{B} \text{ bits/parameter}$$
 
 For $B = 64$: $\frac{32}{64} = 0.5$ bits/parameter.
 
-**Double quantization** quantizes the scales themselves. QLoRA reports average overhead:
+**Double quantization** quantizes the scales themselves. Instead of storing full 32-bit scales, QLoRA quantizes the scales to 8-bit using a second level of quantization. QLoRA reports average overhead:
 
 $$\frac{8}{64} + \frac{32}{64 \times 256} = 0.127 \text{ bits/parameter}$$
 
