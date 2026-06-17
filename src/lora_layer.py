@@ -33,8 +33,7 @@ class LayerWithLoRA(nn.Module):
 def attach_Lora_to_Linear(base_model, rank, alpha):
     base_model.rank = rank
     base_model.alpha = alpha
-
-    for layer in base_model.layers:
+    for layer in base_model.model.layers:
         layer.self_attn.q_proj = LayerWithLoRA(layer.self_attn.q_proj, rank=rank, alpha=alpha)
         layer.self_attn.k_proj = LayerWithLoRA(layer.self_attn.k_proj, rank=rank, alpha=alpha)
         layer.self_attn.v_proj = LayerWithLoRA(layer.self_attn.v_proj, rank=rank, alpha=alpha)
