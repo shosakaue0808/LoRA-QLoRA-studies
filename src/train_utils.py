@@ -1,7 +1,12 @@
+
+import os
+import csv
 import torch
 
 # save checkpoint
 def save_checkpoint(path, model, optimizer, epoch, global_step, train_loss, val_loss=None):
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+
     ckpt = {
         "epoch": epoch,
         "global_step": global_step,
@@ -38,6 +43,8 @@ def load_checkpoint(path):
     return model, optimizer, epoch, global_step, train_loss, val_loss
 
 def training_log(log_path, step, train_loss, val_loss, epoch, lr):
+    os.makedirs(os.path.dirname(log_path), exist_ok=True)
+
     row = {
         "step": step,
         "train_loss": train_loss,
