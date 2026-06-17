@@ -16,18 +16,16 @@ def save_checkpoint(path, model, optimizer, epoch, global_step, train_loss, val_
         "val_loss": val_loss,
         "rank" : model.rank,
         "alpha" : model.alpha,
-        "model_name" : model.model_name
     }
     torch.save(ckpt, path)
 
 # load checkpoint
 def load_checkpoint(path):
     checkpoint = torch.load(path, weights_only=False)
-
+    model_id = "meta-llama/Llama-3.2-1B"
     rank = checkpoint["rank"]
     alpha = checkpoint["alpha"]
-    model_name = checkpoint["model_name"]
-    # model = AutoModelForCausalLM.from_pretrained(model_name)
+    model = AutoModelForCausalLM.from_pretrained(model_id)
     attach_Lora_to_Linear(model, rank, alpha)
     model.load_state_dict(checkpoint['model_state_dict'])
     model.to(device)
