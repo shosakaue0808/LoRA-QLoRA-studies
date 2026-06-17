@@ -114,7 +114,7 @@ def train(model, optimizer, train_loader, val_loader, epochs, device):
                         val_loss=val_loss,
                     )
     training_log(
-        log_path= "results/training_log.csv",
+        log_path= f"results/{model.rank}_{model.store_bit}/training_log.csv",
         step=global_step,
         train_loss=train_loss,
         val_loss=val_loss,
